@@ -1,10 +1,9 @@
 numpy~=1.22.3
-yfinance~=0.1.72
+yfinance==0.2.14
 pandas~=1.4.2
 seaborn~=0.12.1
 streamlit~=1.20.0
 plotly~=5.9.0
 stockstats~=0.5.2
-rpy2~=3.5.10
 matplotlib~=3.5.1
 arch~=5.2.0
