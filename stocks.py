@@ -92,7 +92,7 @@ if __name__ == "__main__":
         start = st.date_input('Start date', value=datetime.date(2022, 9, 30), max_value=datetime.date.today())
         end = st.date_input('End date', value= datetime.date.today(),
                             max_value=datetime.date.today())
-
+    print(tick)
     df = get_data(tick, starting=start, ending=end)
     st.subheader('Data for the last {} days for {}'.format(time, tick))
     st.write(df.tail(time))
