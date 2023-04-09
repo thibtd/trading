@@ -16,7 +16,7 @@ def get_data(ticker='BABA', starting=None, ending=None):
     data['rsi'] = data['rsi']
     data['close_5_sma'] = data['close_5_sma']
     data['close_10_sma'] = data['close_10_sma']
-    #data.drop(['dividends','stock splits'], axis=1, inplace=True)
+    data.drop(['dividends','stock splits'], axis=1, inplace=True)
     if 'rs_14' in data.columns:
         data.drop('rs_14', axis=1, inplace=True)
     return data
