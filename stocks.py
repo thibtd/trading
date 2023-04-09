@@ -10,6 +10,7 @@ import plotly.express as px
 
 def get_data(ticker='BABA', starting=None, ending=None):
     ticker = yf.Ticker(ticker)
+    print(ticker)
     time_data = ticker.history(start=starting,
                                end=ending)
     data = wrap(time_data)
