@@ -8,15 +8,15 @@ import streamlit as st
 import plotly.express as px
 
 
-def get_data(ticker='BABA', starting=None, ending=None):
+def get_data(ticker='BABA', starting=None, ending=None, short_t=5, long_t=10):
     ticker = yf.Ticker(ticker)
-    print(ticker)
-    time_data = ticker.history(start=starting,
-                               end=ending)
+    time_data = ticker.history(start=starting,end=ending)
     data = wrap(time_data)
     data['rsi'] = data['rsi']
-    data['close_5_sma'] = data['close_5_sma']
-    data['close_10_sma'] = data['close_10_sma']
+    short_sma = 'close_{}_sma'.format(short_t)
+    long_sma= 'close_{}_sma'.format(long_t)
+    data[short_sma] = data[short_sma]
+    data[long_sma] = data[long_sma]
     data.drop(['dividends','stock splits'], axis=1, inplace=True)
     if 'rs_14' in data.columns:
         data.drop('rs_14', axis=1, inplace=True)
@@ -86,14 +86,18 @@ if __name__ == "__main__":
 
     with col1:
         tick = st.text_input('Enter the symbol for the desired stock', 'BABA')
-        time = st.number_input('Enter the maximum difference of days between a SMA crossing (default = 9) ',
-                               value=9)
-    with col2:
         start = st.date_input('Start date', value=datetime.date(2022, 9, 30), max_value=datetime.date.today())
-        end = st.date_input('End date', value= datetime.date.today(),
+        end = st.date_input('End date', value=datetime.date.today(),
                             max_value=datetime.date.today())
+    with col2:
+        short_sma = st.number_input('Enter the value for the short sma',
+                                  value=5)
+        long_sma= st.number_input('Enter the value for the long sma',
+                                 value=10)
+        time = st.number_input('Enter the maximum days between RSI and SMA crossing ',
+                               value=9)
     print(tick)
-    df = get_data(tick, starting=start, ending=end)
+    df = get_data(tick, starting=start, ending=end, short_t=short_sma,long_t=long_sma)
     st.subheader('Data for the last {} days for {}'.format(time, tick))
     st.write(df.tail(time))
     signal = get_signal(time, df)
@@ -123,7 +127,7 @@ if __name__ == "__main__":
                 'it sends a signal, the RSI over the last {} days (the number you chose above) is checked to see if it'
                 'gives the same signal.'.format(time))
 
-    fig = px.line(df, y=['close', 'close_5_sma', 'close_10_sma'], title='Price and SMA of {}'.format(tick))
+    fig = px.line(df, y=['close', 'close_{}_sma'.format(short_sma), 'close_{}_sma'.format(long_sma)], title='Price and SMA of {}'.format(tick))
     st.plotly_chart(fig, use_container_width=False, sharing="streamlit")
     fig2 = px.line(df, y=['rsi'], title='RSI, 14 days')
     fig2.add_hline(y=70, line_width=3, line_dash="dash", line_color="green")
