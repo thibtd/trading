@@ -96,7 +96,7 @@ multidict==6.0.4
 multitasking==0.0.11
 munkres==1.1.4
 nbclassic @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_d6oy9w0m3l/croot/nbclassic_1681756176477/work
-nbconvert==5.5.0
+nbconvert==6.5.1
 nbformat @ file:///tmp/build/80754af9/nbformat_1617383369282/work
 nest-asyncio @ file:///Users/cbousseau/work/recipes/ci_py311/nest-asyncio_1677912430289/work
 networkx==3.1
