@@ -176,9 +176,8 @@ sympy==1.12
 tenacity @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_0ew5sfng29/croot/tenacity_1682972282256/work
 tensorboard==2.13.0
 tensorboard-data-server==0.7.1
-tensorflow==2.13.0rc1
+tensorflow
 tensorflow-estimator==2.13.0rc0
-tensorflow-macos==2.13.0rc1
 termcolor==2.3.0
 terminado @ file:///Users/cbousseau/work/recipes/ci_py311/terminado_1677918849903/work
 testpath @ file:///Users/cbousseau/work/recipes/ci_py311/testpath_1678004295617/work
