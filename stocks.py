@@ -8,9 +8,12 @@ import streamlit as st
 import plotly.express as px
 
 
-def get_data(ticker='BABA', starting=None, ending=None, short_t=5, long_t=10):
+def get_data(ticker='BABA', starting=None, ending=None, short_t=5, long_t=10, period=None):
     ticker = yf.Ticker(ticker)
-    time_data = ticker.history(start=starting, end=ending)
+    if period is not None:
+        time_data = ticker.history(period=period)
+    else:
+        time_data = ticker.history(start=starting, end=ending)
     data = wrap(time_data)
     data['rsi'] = data['rsi']
     short_sma = 'close_{}_sma'.format(short_t)
@@ -20,6 +23,8 @@ def get_data(ticker='BABA', starting=None, ending=None, short_t=5, long_t=10):
     data.rename(columns={'close_{}_sma'.format(short_t): 'short_sma', 'close_{}_sma'.format(long_t): 'long_sma'},
                 inplace=True)
     data.drop(['dividends', 'stock splits'], axis=1, inplace=True)
+    data = data.asfreq('d')
+    data.fillna(method='ffill', inplace=True)
     if 'rs_14' in data.columns:
         data.drop('rs_14', axis=1, inplace=True)
     return data
@@ -74,12 +79,20 @@ def sma_sell_cross(df):
 # main logic
 # returns true if both signals indicate sell, false if both signal indicate buy
 def get_signal(df, t, delay):
-    # TODO: modify to accomodate for new changes
+
     # sma = sma_sell_cross(df)
     # rsi = rsi_sell_bool(df)
     # st.write(rsi)
-    sma = any(df['sma_signal'].iloc[-delay:])
-    rsi = any(df['rsi_signal'].iloc[-t:])
+    sma = None
+    rsi = None
+    if True in df['sma_signal'].iloc[-delay:]:
+        sma = True
+    elif False in df['sma_signal'].iloc[-delay:]:
+        sma = False
+    if True in df['rsi_signal'].iloc[-t:]:
+        rsi = True
+    elif False in df['rsi_signal'].iloc[-t:]:
+        rsi = False
 
     if sma is True and rsi is True:
         print('sell sma and rsi')
@@ -96,6 +109,10 @@ if __name__ == "__main__":
     symbols = pd.read_csv('symbols.csv')
     option = symbols['name']
     nvda = symbols.index[symbols['symbol'] == 'NVDA'].to_list()[0]
+    st.set_page_config(
+        page_title="Home",
+        page_icon="💰",
+    )
     st.title('stock analysis')
     st.header('Welcome to this trading helper ')
     col1, col2 = st.columns(2)
@@ -104,7 +121,7 @@ if __name__ == "__main__":
         stock = st.selectbox(
             'Enter the symbol for the desired stock',
             options=option, index=nvda)
-        #tick = st.text_input('Enter the symbol for the desired stock', 'NVDA')
+        # tick = st.text_input('Enter the symbol for the desired stock', 'NVDA')
         start = st.date_input('Start date', value=datetime.date(2022, 9, 30), max_value=datetime.date.today())
         end = st.date_input('End date', value=datetime.date.today(),
                             max_value=datetime.date.today())
@@ -119,14 +136,14 @@ if __name__ == "__main__":
                                 value=2)
 
     print(stock)
-    tick = symbols.query("name=='{}'".format(stock))['symbol'].iloc[0]
-    print(tick)
-    df = get_data(tick, starting=start, ending=end, short_t=short_sma, long_t=long_sma)
+    st.session_state.tick = symbols.query("name=='{}'".format(stock))['symbol'].iloc[0]
+
+    print(st.session_state.tick)
+    df = get_data(st.session_state.tick, starting=start, ending=end, short_t=short_sma, long_t=long_sma)
     # TODO: ADD preprocessing step for the signals
     df = preprocess(df)
-    st.subheader('Data for the last {} days for {} ({})'.format(time,stock, tick))
-    st.write(df[['open', 'high', 'low', 'close', 'volume', 'rsi', 'short_sma',
-       'long_sma']].tail(time))
+    st.subheader('Data for the last {} days for {} ({})'.format(time, stock, st.session_state.tick))
+    st.write(df.tail(time))
     signal = get_signal(df, time, delay)
     sell = 'hold or wait'
     if signal:
@@ -137,7 +154,7 @@ if __name__ == "__main__":
     st.markdown('**:blue[{}]** !'.format(sell))
     st.markdown('Have a look at the following 2 graphs for more detailed information.')
     st.markdown('The first figure depicts the closing price of {} over the time span that was selected as well as '
-                'both SMA curves: '.format(tick))
+                'both SMA curves: '.format(st.session_state.tick))
     st.markdown('   - One using a 5 days average, can be seen as a short period. ')
     st.markdown('   - The second one using a 10 days average, can be seen as long period.')
     st.markdown('This is the first indicator that is used, when the two sma curves cross, it can be interpreted as '
@@ -154,7 +171,7 @@ if __name__ == "__main__":
                 'it sends a signal, the RSI over the last {} days (the number you chose above) is checked to see if it'
                 'gives the same signal.'.format(time))
 
-    fig = px.line(df, y=['close', 'short_sma', 'long_sma'], title='Price and SMA of {}'.format(tick))
+    fig = px.line(df, y=['close', 'short_sma', 'long_sma'], title='Price and SMA of {}'.format(st.session_state.tick))
     st.plotly_chart(fig, use_container_width=False, sharing="streamlit")
     fig2 = px.line(df, y=['rsi'], title='RSI, 14 days')
     fig2.add_hline(y=70, line_width=3, line_dash="dash", line_color="green")
