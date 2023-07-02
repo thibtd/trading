@@ -11,6 +11,7 @@ from sklearn.preprocessing import MinMaxScaler
 from keras.callbacks import CSVLogger
 import streamlit as st
 import plotly.graph_objects as go
+from tqdm.keras import  TqdmCallback
 pd.options.mode.chained_assignment = None
 tf.random.set_seed(0)
 

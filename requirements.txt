@@ -9,3 +9,4 @@ scikit-learn~=1.2.2
 seaborn~=0.12.2
 stockstats~=0.5.4
 matplotlib~=3.7.1
+tqdm~=4.65.0
