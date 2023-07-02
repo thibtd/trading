@@ -1,7 +1,6 @@
 import numpy as np
 import csv
 import pandas as pd
-import polars as pl
 import yfinance as yf
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -12,7 +11,6 @@ from sklearn.preprocessing import MinMaxScaler
 from keras.callbacks import CSVLogger
 import streamlit as st
 import plotly.graph_objects as go
-from tqdm.keras import TqdmCallback
 
 pd.options.mode.chained_assignment = None
 tf.random.set_seed(0)
