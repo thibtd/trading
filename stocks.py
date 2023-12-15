@@ -4,104 +4,10 @@ import pandas as pd
 from stockstats import wrap, unwrap
 import seaborn as sns
 import datetime
+from modules.LSTM import lstm
+from modules import stocks_processing as stocks
 import streamlit as st
 import plotly.express as px
-
-
-def get_data(ticker='BABA', starting=None, ending=None, short_t=5, long_t=10, period=None):
-    ticker = yf.Ticker(ticker)
-    if period is not None:
-        time_data = ticker.history(period=period)
-    else:
-        time_data = ticker.history(start=starting, end=ending)
-    data = wrap(time_data)
-    data['rsi'] = data['rsi']
-    short_sma = 'close_{}_sma'.format(short_t)
-    long_sma = 'close_{}_sma'.format(long_t)
-    data[short_sma] = data[short_sma]
-    data[long_sma] = data[long_sma]
-    data.rename(columns={'close_{}_sma'.format(short_t): 'short_sma', 'close_{}_sma'.format(long_t): 'long_sma'},
-                inplace=True)
-    data.drop(['dividends', 'stock splits'], axis=1, inplace=True)
-    data = data.asfreq('d')
-    data.fillna(method='ffill', inplace=True)
-    if 'rs_14' in data.columns:
-        data.drop('rs_14', axis=1, inplace=True)
-    return data
-
-
-def preprocess(df):
-    df = df.copy()
-    print(df.columns)
-    df['rsi_signal'] = df.apply(lambda row: rsi_sell_bool(row['rsi']), axis=1)
-    df['short_sma_prev'] = df['short_sma'].shift(1, fill_value=0)
-    df['long_sma_prev'] = df['long_sma'].shift(1, fill_value=0)
-    df['sma_signal'] = df.apply(lambda row: sma_cross(row['short_sma'], row['short_sma_prev'], row["long_sma"],
-                                                      row['long_sma_prev']), axis=1)
-    return df
-
-
-# logic for rsi
-# return true for a sell signal, false for a buy signal and None if nothing is happening.
-def rsi_sell_bool(row):
-    if row >= 70:
-        # print('sell rsi', np.round(row, 2))
-        # st.write('sell rsi', np.round(df['rsi'].iloc[-t], 2))
-        return True
-    elif row <= 30:
-        # print('buy rsi', np.round(row, 2))
-        # st.write('buy rsi', np.round(df['rsi'].iloc[-t], 2))
-        return False
-
-
-# logic for sma
-# returns true is sell signal, false for buy signal, None for no signal
-def sma_cross(short, short_prev, long, long_prev):
-    if short_prev > long_prev and short <= long:
-        return True
-    elif short_prev < long_prev and short >= long:
-        return False
-
-
-def sma_sell_cross(df):
-    if df['close_5_sma'].iloc[-2] > df['close_10_sma'].iloc[-2] and \
-            df['close_5_sma'].iloc[-1] <= df['close_10_sma'].iloc[-1]:
-        print('sell sma')
-        # st.write('sell sma')
-        return True
-    elif df['close_5_sma'].iloc[-2] < df['close_10_sma'].iloc[-2] and \
-            df['close_5_sma'].iloc[-1] >= df['close_10_sma'].iloc[-1]:
-        print('buy sma')
-        # st.write('buy sma')
-        return False
-
-
-# main logic
-# returns true if both signals indicate sell, false if both signal indicate buy
-def get_signal(df, t, delay):
-
-    # sma = sma_sell_cross(df)
-    # rsi = rsi_sell_bool(df)
-    # st.write(rsi)
-    sma = None
-    rsi = None
-    if True in df['sma_signal'].iloc[-delay:]:
-        sma = True
-    elif False in df['sma_signal'].iloc[-delay:]:
-        sma = False
-    if True in df['rsi_signal'].iloc[-t:]:
-        rsi = True
-    elif False in df['rsi_signal'].iloc[-t:]:
-        rsi = False
-
-    if sma is True and rsi is True:
-        print('sell sma and rsi')
-        # st.write('sell sma and rsi')
-        return True
-    elif sma is False and rsi is False:
-        print('buy sma and rsi')
-        # st.write('buy sma and rsi')
-        return False
 
 
 if __name__ == "__main__":
@@ -114,7 +20,9 @@ if __name__ == "__main__":
         page_icon="💰",
     )
     st.title('stock analysis')
-    st.header('Welcome to this trading helper ')
+    st.markdown('Disclaimer: This is not financial advice. This tool exists for educational purposes only.')
+    st.header('First simple analysis')
+
     col1, col2 = st.columns(2)
 
     with col1:
@@ -134,17 +42,21 @@ if __name__ == "__main__":
                                value=9)
         delay = st.number_input('allow delay',
                                 value=2)
+        st.session_state.time = time
+        st.session_state.delay = delay
+        st.session_state.start = start
 
     print(stock)
     st.session_state.tick = symbols.query("name=='{}'".format(stock))['symbol'].iloc[0]
 
     print(st.session_state.tick)
-    df = get_data(st.session_state.tick, starting=start, ending=end, short_t=short_sma, long_t=long_sma)
+    df = stocks.get_data(st.session_state.tick, starting=st.session_state.start, ending=end)
+    st.session_state.data = df
     # TODO: ADD preprocessing step for the signals
-    df = preprocess(df)
+    df = stocks.preprocess(df,short_t=short_sma, long_t=long_sma)
     st.subheader('Data for the last {} days for {} ({})'.format(time, stock, st.session_state.tick))
     st.write(df.tail(time))
-    signal = get_signal(df, time, delay)
+    signal = stocks.get_signal(df, time, delay)
     sell = 'hold or wait'
     if signal:
         sell = 'Both indicators show that it is time to sell'
@@ -177,3 +89,63 @@ if __name__ == "__main__":
     fig2.add_hline(y=70, line_width=3, line_dash="dash", line_color="green")
     fig2.add_hline(y=30, line_width=3, line_dash="dash", line_color="green")
     st.plotly_chart(fig2, use_container_width=False, sharing="streamlit")
+
+    st.header('Using AI to predict movements')
+    st.markdown('')
+
+    if 'clicked' not in st.session_state:
+        st.session_state.clicked = False
+
+
+    def click_button():
+        st.session_state.clicked = True
+
+
+    st.button('Create model', on_click=click_button)
+
+    if st.session_state.clicked:
+        ticker = st.session_state.tick
+        data = stocks.get_data(ticker=ticker, period='6y')
+        st.session_state.data = data
+        data = stocks.preprocess(data)
+
+        print(data)
+        model = lstm(ticker, data, 60, 10)
+        #st.markdown('Here is a summary of the architecture of the model')
+        #st.write(model.model.summary())
+        model.preprocess_lstm(future=True)
+        if not model.trained:
+            st.markdown('The model is being trained on your data ')
+            model.train()
+        else:
+            st.markdown('The model is already trained')
+        model.save_model()
+        st.session_state.forecast = model.forecast()
+        model.plot_training()
+        model.plots(zoomed=False)
+        # Indicators using predictions
+        st.header('Determining the indicators using the predicted values')
+        df_shortened = st.session_state.forecast[st.session_state.forecast.index.date >= st.session_state.start]
+        data_yahoo = st.session_state.data
+        df_shortened['high'] = data_yahoo['High']
+        df_shortened['low'] = data_yahoo['Low']
+        df_shortened['volume'] = data_yahoo['Volume']
+        df_shortened.index.name = 'date'
+        df_shortened = stocks.preprocess(df_shortened)
+        st.write(df_shortened.tail())
+        signal = stocks.get_signal(df_shortened, st.session_state.time, st.session_state.delay)
+        sell = 'Hold or wait'
+        if signal:
+            sell = 'Both indicators show that it is time to sell'
+        elif signal is False:
+            sell = 'Both indicators show that it is time to buy'
+        st.subheader('Based on the rsi and the SMA crossing indicator:')
+        st.markdown('**:blue[{}]** !'.format(sell))
+        fig = px.line(df_shortened, y=['close', 'short_sma', 'long_sma'],
+                      title='Price and SMA of {}'.format(st.session_state.tick))
+        st.plotly_chart(fig, use_container_width=False, sharing="streamlit")
+        fig2 = px.line(df_shortened, y=['rsi'], title='RSI, 14 days')
+        fig2.add_hline(y=70, line_width=3, line_dash="dash", line_color="green")
+        fig2.add_hline(y=30, line_width=3, line_dash="dash", line_color="green")
+        st.plotly_chart(fig2, use_container_width=False, sharing="streamlit")
+
