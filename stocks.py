@@ -52,7 +52,6 @@ if __name__ == "__main__":
     print(st.session_state.tick)
     df = stocks.get_data(st.session_state.tick, starting=st.session_state.start, ending=end)
     st.session_state.data = df
-    # TODO: ADD preprocessing step for the signals
     df = stocks.preprocess(df,short_t=short_sma, long_t=long_sma)
     st.subheader('Data for the last {} days for {} ({})'.format(time, stock, st.session_state.tick))
     st.write(df.tail(time))

@@ -10,6 +10,20 @@ import plotly.express as px
 
 @st.cache_data
 def get_data(ticker='BABA', starting=None, ending=None, period=None):
+    """
+    Function to retrieve data from yfinance
+    Parameters
+    ----------
+    ticker: ticker of the desired stock
+    starting: starting date of the stock
+    ending: ending date of the stock
+    period: the periodicity of the data (days,...)
+
+    Returns
+    time_data: dataFrame with the retrieved data.
+    -------
+
+    """
     ticker = yf.Ticker(ticker)
     if period is not None:
         time_data = ticker.history(period=period)
@@ -62,6 +76,17 @@ def preprocess(df, short_t=5, long_t=10):
 # logic for rsi
 # return true for a sell signal, false for a buy signal and None if nothing is happening.
 def rsi_sell_bool(row):
+    """
+    Logic for the RSI indicator
+    Parameters
+    ----------
+    row: the current value of the RSI.
+
+    Returns
+    True if sell signal, False if buy signal, None if no signal
+    -------
+
+    """
     if row >= 70:
         # print('sell rsi', np.round(row, 2))
         # st.write('sell rsi', np.round(df['rsi'].iloc[-t], 2))
@@ -77,23 +102,36 @@ def rsi_sell_bool(row):
 # logic for sma
 # returns true is sell signal, false for buy signal, None for no signal
 def sma_cross(short, short_prev, long, long_prev):
+    """
+    Function to compute the logic for the sma crossing based on a long a short signal.
+    Parameters
+    ----------
+    short: the value of the short SMA at time t.
+    short_prev: the value of the short SMA at time t-1
+    long: the value of the long SMA at time t.
+    long_prev: the value of the long SMA at time t-1
+
+    Returns
+    True if sell signal, for for buy signal, None for no signal
+    -------
+    """
     if short_prev > long_prev and short <= long:
         return True
     elif short_prev < long_prev and short >= long:
         return False
 
 
-def sma_sell_cross(df):
-    if df['close_5_sma'].iloc[-2] > df['close_10_sma'].iloc[-2] and \
-            df['close_5_sma'].iloc[-1] <= df['close_10_sma'].iloc[-1]:
-        print('sell sma')
-        # st.write('sell sma')
-        return True
-    elif df['close_5_sma'].iloc[-2] < df['close_10_sma'].iloc[-2] and \
-            df['close_5_sma'].iloc[-1] >= df['close_10_sma'].iloc[-1]:
-        print('buy sma')
-        # st.write('buy sma')
-        return False
+# def sma_sell_cross(df):
+#     if df['close_5_sma'].iloc[-2] > df['close_10_sma'].iloc[-2] and \
+#             df['close_5_sma'].iloc[-1] <= df['close_10_sma'].iloc[-1]:
+#         print('sell sma')
+#         # st.write('sell sma')
+#         return True
+#     elif df['close_5_sma'].iloc[-2] < df['close_10_sma'].iloc[-2] and \
+#             df['close_5_sma'].iloc[-1] >= df['close_10_sma'].iloc[-1]:
+#         print('buy sma')
+#         # st.write('buy sma')
+#         return False
 
 
 # main logic
