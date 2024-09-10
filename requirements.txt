@@ -1,7 +1,7 @@
 keras==2.13.1rc0
 pandas==2.0.2
 stockstats==0.5.4
-streamlit==1.24.0
+streamlit==1.37.0
 tensorflow==2.13.0rc1
 yfinance==0.2.20
 plotly~=5.9.0
